@@ -140,14 +140,6 @@ def init_db():
     cursor.executescript(EMBEDDED_SCHEMA_SQL)
     conn.commit()
 
-    cursor.execute("SELECT COUNT(1) FROM raw_observations")
-    count = cursor.fetchone()[0]
-    if count == 0:
-        try:
-            run_data_pipeline()
-        except Exception:
-            pass
-
 def save_raw_observations(observations: List[Dict]):
     if not observations:
         return
@@ -1407,6 +1399,19 @@ VARIABLE_EXPLANATIONS = {
 
 # Data Loading (Uncached for instant live reflection & time-travel mode)
 def load_and_process_all_data(as_of_date: str = None):
+    init_db()
+    conn = get_connection()
+    cur = conn.cursor()
+    cur.execute("SELECT COUNT(1) FROM raw_observations")
+    if cur.fetchone()[0] == 0:
+        try:
+            run_data_pipeline()
+        except Exception:
+            try:
+                run_data_pipeline()
+            except Exception:
+                pass
+
     config = load_config()
     fred_series = config.get("fred_series", {})
     processed_dfs = {}
