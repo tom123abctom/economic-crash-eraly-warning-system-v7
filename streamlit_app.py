@@ -243,6 +243,15 @@ def load_config() -> Dict:
             "debt_service_ratio": "TDSP", "junk_bond_spread": "BAMLH0A0HYM2", "npl_ratio": "DRALACBN",
             "fiscal_deficit_gdp": "FYFSGDA188S", "excess_liquidity": "EXCESS_M2_GDP",
             "retail_equity_allocation": "BOGZ1FL153064105Q"
+        },
+        "crisis_fingerprints": {
+            "1929 Wall Street Crash": {"housing": 70, "debt": 65, "yield_curve": 85, "credit": 75, "stocks": 95, "employment": 30, "wealth_gap": 90, "purchasing_power": 60, "volatility": 75, "inflation": 40},
+            "1973 Oil/Stagflation Crisis": {"housing": 55, "debt": 50, "yield_curve": 80, "credit": 60, "stocks": 85, "employment": 55, "wealth_gap": 45, "purchasing_power": 80, "volatility": 70, "inflation": 95},
+            "1987 Black Monday": {"housing": 45, "debt": 60, "yield_curve": 40, "credit": 50, "stocks": 90, "employment": 40, "wealth_gap": 60, "purchasing_power": 45, "volatility": 95, "inflation": 50},
+            "2000 Dot-Com Bubble": {"housing": 50, "debt": 70, "yield_curve": 90, "credit": 65, "stocks": 98, "employment": 25, "wealth_gap": 85, "purchasing_power": 40, "volatility": 80, "inflation": 45},
+            "2008 Global Financial Crisis": {"housing": 98, "debt": 95, "yield_curve": 88, "credit": 90, "stocks": 80, "employment": 50, "wealth_gap": 85, "purchasing_power": 70, "volatility": 85, "inflation": 55},
+            "2020 COVID Shock": {"housing": 60, "debt": 80, "yield_curve": 45, "credit": 85, "stocks": 75, "employment": 95, "wealth_gap": 80, "purchasing_power": 65, "volatility": 98, "inflation": 30},
+            "2022 Rate/Inflation Shock": {"housing": 85, "debt": 75, "yield_curve": 92, "credit": 55, "stocks": 70, "employment": 20, "wealth_gap": 85, "purchasing_power": 88, "volatility": 65, "inflation": 92}
         }
     }
 
