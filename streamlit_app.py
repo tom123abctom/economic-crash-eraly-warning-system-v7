@@ -65,20 +65,29 @@ DB_PATH = get_writable_db_path()
 CONFIG_PATH = resolve_path("config/config.yaml")
 SCHEMA_PATH = resolve_path("database/schema.sql")
 
+_GLOBAL_CONN = None
+
 def get_connection():
-    try:
-        if DB_PATH != ":memory:":
-            try:
-                os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-            except Exception:
-                pass
-        conn = sqlite3.connect(DB_PATH, timeout=60.0)
-        conn.row_factory = sqlite3.Row
-        return conn
-    except Exception:
-        conn = sqlite3.connect(":memory:", timeout=60.0)
-        conn.row_factory = sqlite3.Row
-        return conn
+    global _GLOBAL_CONN
+    if _GLOBAL_CONN is not None:
+        return _GLOBAL_CONN
+
+    if DB_PATH != ":memory:":
+        try:
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            _GLOBAL_CONN = sqlite3.connect(DB_PATH, timeout=60.0, check_same_thread=False)
+            _GLOBAL_CONN.row_factory = sqlite3.Row
+            return _GLOBAL_CONN
+        except Exception:
+            pass
+
+    _GLOBAL_CONN = sqlite3.connect("file:memdb1?mode=memory&cache=shared", uri=True, check_same_thread=False)
+    _GLOBAL_CONN.row_factory = sqlite3.Row
+    return _GLOBAL_CONN
+
+def safe_close(conn):
+    # Do not close global singleton in-memory database connection
+    pass
 
 EMBEDDED_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS raw_observations (
@@ -130,7 +139,6 @@ def init_db():
     cursor = conn.cursor()
     cursor.executescript(EMBEDDED_SCHEMA_SQL)
     conn.commit()
-    conn.close()
 
 def save_raw_observations(observations: List[Dict]):
     if not observations:
@@ -153,7 +161,6 @@ def save_raw_observations(observations: List[Dict]):
         VALUES (?, ?, ?, ?, ?, ?)
     """, data)
     conn.commit()
-    conn.close()
 
 def get_raw_observations(indicator_code: str) -> pd.DataFrame:
     init_db()
@@ -163,7 +170,6 @@ def get_raw_observations(indicator_code: str) -> pd.DataFrame:
         conn,
         params=[indicator_code]
     )
-    conn.close()
     if not df.empty:
         df["observation_date"] = pd.to_datetime(df["observation_date"])
     return df
@@ -191,7 +197,6 @@ def save_processed_indicators(df: pd.DataFrame, indicator_code: str):
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     """, data)
     conn.commit()
-    conn.close()
 
 if __name__ == "__main__":
     init_db()
