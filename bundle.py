@@ -7,7 +7,6 @@ def read_clean(rel_path):
     with open(p, "r", encoding="utf-8") as f:
         lines = []
         for l in f.readlines():
-            # Only filter top-level module imports from app package
             stripped = l.strip()
             if stripped.startswith("sys.path.append") or stripped.startswith("sys.path.insert"):
                 continue

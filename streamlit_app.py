@@ -223,14 +223,26 @@ def load_config() -> Dict:
         "risk_thresholds": {"low": 24, "elevated": 49, "high": 74, "extreme": 100},
         "housing_price_income_warning": 6.0,
         "weights": {
-            "housing": 0.15, "stocks": 0.15, "debt": 0.15, "yield_curve": 0.15,
-            "credit": 0.10, "employment": 0.10, "purchasing_power": 0.05,
+            "housing": 0.15, "stocks": 0.15, "debt": 0.15, "yield_curve": 0.10,
+            "credit": 0.10, "employment": 0.10, "purchasing_power": 0.10,
             "wealth_gap": 0.05, "inflation": 0.05, "volatility": 0.05
         },
         "fred_series": {
-            "sp500": "SP500", "yield_10y_2y": "T10Y2Y", "yield_10y_3m": "T10Y3M",
-            "credit_spread_baa": "BAA10Y", "unemployment": "UNRATE",
-            "initial_jobless_claims": "ICSA", "vix": "VIXCLS", "case_shiller": "CSUSHPISA"
+            "sp500": "SP500", "case_shiller": "CSUSHPISA", "hourly_earnings": "CES0500000003",
+            "mortgage_30y": "MORTGAGE30US", "household_debt_gdp": "HDTGPDUSQ163N", "corporate_debt_gdp": "NCBCMD227S",
+            "federal_debt_gdp": "GFDEGDQ188S", "yield_10y_2y": "T10Y2Y", "yield_10y_3m": "T10Y3M",
+            "credit_spread_baa": "BAA10Y", "unemployment": "UNRATE", "initial_jobless_claims": "ICSA",
+            "labor_force_participation": "CIVPART", "productivity": "OPHNFB", "cpi": "CPIAUCSL",
+            "real_income": "DSPIC96", "vix": "VIXCLS", "top1_wealth_share": "WFRBST01134",
+            "usd_index": "DTWEXBGS", "usd_purchasing_power": "CUUR0000SA0R", "energy_price_na_eu": "CPIENGSL",
+            "debt_us": "GFDEGDQ188S", "debt_germany": "DEUGDPDEBTTQ", "debt_uk": "GBRGDPDEBTTQ",
+            "debt_japan": "JPNGDPDEBTTQ", "debt_eurozone": "EA19GDPDEBTTQ", "debt_china": "CHNGDPDEBTTQ",
+            "ipo_volume": "IPO_VOLUME_200M", "yield_3m": "DGS3MO", "yield_2y": "DGS2",
+            "yield_10y": "DGS10", "yield_30y": "DGS30", "cre_index": "BOGZ1FL075035503Q",
+            "margin_debt": "BOGZ1FL663067003Q", "m2_growth": "WM2NS", "bank_credit": "TOTBKCR",
+            "debt_service_ratio": "TDSP", "junk_bond_spread": "BAMLH0A0HYM2", "npl_ratio": "DRALACBN",
+            "fiscal_deficit_gdp": "FYFSGDA188S", "excess_liquidity": "EXCESS_M2_GDP",
+            "retail_equity_allocation": "BOGZ1FL153064105Q"
         }
     }
 
@@ -1221,8 +1233,29 @@ def send_alert_email(to_email: str, current_score: float, warning_level: str, to
 import plotly.graph_objects as go
 import plotly.express as px
 import streamlit as st
-from datetime import datetime
-# Main dashboard imports handled globally
+# Modular imports for standalone dashboard execution
+for _mod in ["app.indicators.db", "indicators.db"]:
+    try:
+        _m = __import__(_mod, fromlist=["init_db"])
+        init_db = getattr(_m, "init_db", None) or (globals().get("init_db"))
+        get_connection = getattr(_m, "get_connection", None) or (globals().get("get_connection"))
+        get_raw_observations = getattr(_m, "get_raw_observations", None) or (globals().get("get_raw_observations"))
+        save_raw_observations = getattr(_m, "save_raw_observations", None) or (globals().get("save_raw_observations"))
+        break
+    except Exception:
+        pass
+
+for _mod in ["app.models.scoring", "models.scoring"]:
+    try:
+        _m = __import__(_mod, fromlist=["load_config"])
+        load_config = getattr(_m, "load_config", None) or (globals().get("load_config"))
+        normalize_indicator = getattr(_m, "normalize_indicator", None) or (globals().get("normalize_indicator"))
+        compute_overall_stress_score = getattr(_m, "compute_overall_stress_score", None) or (globals().get("compute_overall_stress_score"))
+        compute_crash_probability = getattr(_m, "compute_crash_probability", None) or (globals().get("compute_crash_probability"))
+        compute_sector_radar_scores = getattr(_m, "compute_sector_radar_scores", None) or (globals().get("compute_sector_radar_scores"))
+        break
+    except Exception:
+        pass
 
 # Page Setup
 st.set_page_config(
@@ -1400,20 +1433,12 @@ VARIABLE_EXPLANATIONS = {
 # Data Loading (Uncached for instant live reflection & time-travel mode)
 def load_and_process_all_data(as_of_date: str = None):
     init_db()
-    conn = get_connection()
-    cur = conn.cursor()
-    cur.execute("SELECT COUNT(1) FROM raw_observations")
-    if cur.fetchone()[0] == 0:
-        try:
-            run_data_pipeline()
-        except Exception:
-            try:
-                run_data_pipeline()
-            except Exception:
-                pass
-
     config = load_config()
     fred_series = config.get("fred_series", {})
+    cur.execute("SELECT COUNT(DISTINCT indicator_code) FROM raw_observations")
+    distinct_count = cur.fetchone()[0]
+    if distinct_count < len(fred_series):
+        run_data_pipeline()
     processed_dfs = {}
     latest_scores = {}
     latest_raw_values = {}
