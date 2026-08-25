@@ -36,20 +36,24 @@ def resolve_path(rel_sub):
 import tempfile
 
 def get_writable_db_path():
-    # 1. Try local project database folder first
-    local_path = resolve_path("database/economic_monitor.db")
+    # 1. Detect Streamlit Cloud Linux environment (/mount/src)
+    if os.path.exists("/mount/src") or "STREAMLIT_SERVER_PORT" in os.environ or os.environ.get("IS_STREAMLIT_CLOUD"):
+        return os.path.join(tempfile.gettempdir(), "economic_monitor.db")
+
+    # 2. Try local project database folder
     try:
+        local_path = resolve_path("database/economic_monitor.db")
         os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        test_c = sqlite3.connect(local_path, timeout=5.0)
+        test_c = sqlite3.connect(local_path, timeout=2.0)
         test_c.close()
         return local_path
     except Exception:
         pass
     
-    # 2. Fallback to OS temp directory (always writable on Streamlit Cloud Linux)
-    tmp_path = os.path.join(tempfile.gettempdir(), "economic_monitor.db")
+    # 3. Fallback to OS temp directory
     try:
-        test_c = sqlite3.connect(tmp_path, timeout=5.0)
+        tmp_path = os.path.join(tempfile.gettempdir(), "economic_monitor.db")
+        test_c = sqlite3.connect(tmp_path, timeout=2.0)
         test_c.close()
         return tmp_path
     except Exception:
@@ -63,13 +67,11 @@ SCHEMA_PATH = resolve_path("database/schema.sql")
 
 def get_connection():
     if DB_PATH != ":memory:":
-        os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        try:
+            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+        except Exception:
+            pass
     conn = sqlite3.connect(DB_PATH, timeout=60.0)
-    try:
-        conn.execute("PRAGMA journal_mode=WAL;")
-        conn.execute("PRAGMA busy_timeout=60000;")
-    except Exception:
-        pass
     conn.row_factory = sqlite3.Row
     return conn
 
