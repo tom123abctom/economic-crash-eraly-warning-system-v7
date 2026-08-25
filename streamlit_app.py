@@ -140,6 +140,14 @@ def init_db():
     cursor.executescript(EMBEDDED_SCHEMA_SQL)
     conn.commit()
 
+    cursor.execute("SELECT COUNT(1) FROM raw_observations")
+    count = cursor.fetchone()[0]
+    if count == 0:
+        try:
+            run_data_pipeline()
+        except Exception:
+            pass
+
 def save_raw_observations(observations: List[Dict]):
     if not observations:
         return
