@@ -45,11 +45,55 @@ def get_connection():
     conn.row_factory = sqlite3.Row
     return conn
 
+EMBEDDED_SCHEMA_SQL = """
+CREATE TABLE IF NOT EXISTS raw_observations (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    indicator_code TEXT NOT NULL,
+    observation_date DATE NOT NULL,
+    value REAL,
+    frequency TEXT NOT NULL,
+    source TEXT NOT NULL,
+    is_preliminary INTEGER DEFAULT 0,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(indicator_code, observation_date)
+);
+
+CREATE TABLE IF NOT EXISTS processed_indicators (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    indicator_code TEXT NOT NULL,
+    observation_date DATE NOT NULL,
+    raw_value REAL,
+    risk_score REAL NOT NULL,
+    warning_level TEXT NOT NULL,
+    change_1m REAL,
+    change_3m REAL,
+    change_1y REAL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE(indicator_code, observation_date)
+);
+
+CREATE TABLE IF NOT EXISTS stress_score_history (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    observation_date DATE NOT NULL UNIQUE,
+    overall_stress_score REAL NOT NULL,
+    warning_level TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE TABLE IF NOT EXISTS alert_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    alert_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    severity TEXT NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    is_read INTEGER DEFAULT 0
+);
+"""
+
 def init_db():
     conn = get_connection()
-    with open(SCHEMA_PATH, "r", encoding="utf-8") as f:
-        schema = f.read()
-    conn.executescript(schema)
+    cursor = conn.cursor()
+    cursor.executescript(EMBEDDED_SCHEMA_SQL)
     conn.commit()
     conn.close()
 
