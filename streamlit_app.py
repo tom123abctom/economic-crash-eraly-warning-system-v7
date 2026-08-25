@@ -66,14 +66,19 @@ CONFIG_PATH = resolve_path("config/config.yaml")
 SCHEMA_PATH = resolve_path("database/schema.sql")
 
 def get_connection():
-    if DB_PATH != ":memory:":
-        try:
-            os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
-        except Exception:
-            pass
-    conn = sqlite3.connect(DB_PATH, timeout=60.0)
-    conn.row_factory = sqlite3.Row
-    return conn
+    try:
+        if DB_PATH != ":memory:":
+            try:
+                os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
+            except Exception:
+                pass
+        conn = sqlite3.connect(DB_PATH, timeout=60.0)
+        conn.row_factory = sqlite3.Row
+        return conn
+    except Exception:
+        conn = sqlite3.connect(":memory:", timeout=60.0)
+        conn.row_factory = sqlite3.Row
+        return conn
 
 EMBEDDED_SCHEMA_SQL = """
 CREATE TABLE IF NOT EXISTS raw_observations (
