@@ -1433,10 +1433,16 @@ VARIABLE_EXPLANATIONS = {
 # Data Loading (Uncached for instant live reflection & time-travel mode)
 def load_and_process_all_data(as_of_date: str = None):
     init_db()
+    conn = get_connection()
+    cur = conn.cursor()
     config = load_config()
     fred_series = config.get("fred_series", {})
-    cur.execute("SELECT COUNT(DISTINCT indicator_code) FROM raw_observations")
-    distinct_count = cur.fetchone()[0]
+    try:
+        cur.execute("SELECT COUNT(DISTINCT indicator_code) FROM raw_observations")
+        distinct_count = cur.fetchone()[0]
+    except Exception:
+        distinct_count = 0
+
     if distinct_count < len(fred_series):
         run_data_pipeline()
     processed_dfs = {}
