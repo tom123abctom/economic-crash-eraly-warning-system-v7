@@ -1265,24 +1265,29 @@ st.set_page_config(
     initial_sidebar_state="expanded"
 )
 
-# Custom CSS styling
+# Custom CSS styling for 1-to-1 visual fidelity
 st.markdown("""
 <style>
-    .stApp {
-        background-color: #0e1117;
-        color: #e0e0e0;
-    }
+    header[data-testid="stHeader"] { background: #0e1117 !important; }
+    .stApp { background-color: #0e1117 !important; color: #e0e0e0 !important; }
+    div[data-testid="stSidebar"] { background-color: #161a23 !important; border-right: 1px solid #2a2e3d !important; }
+    div[data-testid="stMetricValue"] { color: #ffffff !important; font-weight: 700 !important; }
+    div[data-testid="stMetricLabel"] { color: #90a4ae !important; font-size: 0.95rem !important; }
     .metric-card {
-        background: #1e222d;
-        border-radius: 10px;
-        padding: 20px;
-        border: 1px solid #2a2e3d;
-        text-align: center;
+        background: #1e222d !important;
+        border-radius: 10px !important;
+        padding: 20px !important;
+        border: 1px solid #2a2e3d !important;
+        text-align: center !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
     }
-    .status-badge-low { background-color: #1b5e20; color: #81c784; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
-    .status-badge-elevated { background-color: #f57f17; color: #fff59d; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
-    .status-badge-high { background-color: #e65100; color: #ffcc80; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
-    .status-badge-extreme { background-color: #b71c1c; color: #ef9a9a; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+    .status-badge-low { background-color: #1b5e20 !important; color: #81c784 !important; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+    .status-badge-elevated { background-color: #f57f17 !important; color: #fff59d !important; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+    .status-badge-high { background-color: #e65100 !important; color: #ffcc80 !important; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+    .status-badge-extreme { background-color: #b71c1c !important; color: #ef9a9a !important; padding: 4px 12px; border-radius: 4px; font-weight: bold; }
+    .stTabs [data-baseweb="tab-list"] { background-color: #161a23 !important; border-radius: 8px !important; padding: 4px !important; }
+    .stTabs [data-baseweb="tab"] { color: #90a4ae !important; font-weight: 600 !important; }
+    .stTabs [aria-selected="true"] { color: #64b5f6 !important; background-color: #1e222d !important; border-radius: 6px !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -1434,14 +1439,18 @@ VARIABLE_EXPLANATIONS = {
 def load_and_process_all_data(as_of_date: str = None):
     init_db()
     conn = get_connection()
-    cur = conn.cursor()
+    cur = conn.cursor() if conn else None
     config = load_config()
     fred_series = config.get("fred_series", {})
-    try:
-        cur.execute("SELECT COUNT(DISTINCT indicator_code) FROM raw_observations")
-        distinct_count = cur.fetchone()[0]
-    except Exception:
-        distinct_count = 0
+    distinct_count = 0
+    if cur:
+        try:
+            cur.execute("SELECT COUNT(DISTINCT indicator_code) FROM raw_observations")
+            row = cur.fetchone()
+            if row:
+                distinct_count = row[0]
+        except Exception:
+            distinct_count = 0
 
     if distinct_count < len(fred_series):
         run_data_pipeline()
