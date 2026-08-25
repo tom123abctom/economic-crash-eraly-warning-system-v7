@@ -667,10 +667,11 @@ def get_crisis_type(crisis_name: str) -> str:
 # ==================== FETCH MODULE ====================
 import yfinance as yf
 from datetime import datetime, timedelta
-from dotenv import load_dotenv
-
-
-load_dotenv()
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except Exception:
+    pass
 
 # load_config imported from scoring module
 
